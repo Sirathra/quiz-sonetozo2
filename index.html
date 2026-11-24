@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Los Sonetozos — Quiz</title>
+  <style>
+    :root {
+      --ink: #171717;
+      --muted: #666666;
+      --paper: #f8f8f8;
+      --accent: #444444;
+      --green: #dedede;
+      --green-border: #555555;
+      --red: #bdbdbd;
+      --red-border: #333333;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      min-height: 240px;
+      width: 240px;
+      display: grid; place-items: center;
+      color: var(--ink);
+      background: #d8d8d8;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    .quiz-shell { width: 240px; max-width: 240px; perspective: 1400px; }
+    .quiz-card {
+      background: var(--paper);
+      border: 1px solid #bdbdbd;
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 18px 55px rgba(0, 0, 0, .16);
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+    }
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      font: 700 9px/1.35 Arial, sans-serif;
+    }
+    h1 { font-size: 19px; line-height: 1.12; margin: 0 0 14px; }
+    .options { display: grid; gap: 12px; }
+    .option {
+      width: 100%; text-align: left; cursor: pointer;
+      border: 1.5px solid #c7c7c7; border-radius: 13px;
+      background: #fff; color: var(--ink);
+      padding: 9px 10px; font: 600 12px/1.3 Arial, sans-serif;
+      transition: background .2s, border-color .2s, transform .2s;
+    }
+    .option:hover:not(:disabled) { border-color: #555555; transform: translateY(-1px); }
+    .option:focus-visible, .reset:focus-visible { outline: 3px solid #777777; outline-offset: 3px; }
+    .option.correct { background: var(--green); border-color: var(--green-border); color: #111111; }
+    .option.incorrect { background: var(--red); border-color: var(--red-border); color: #111111; }
+    .option:disabled { cursor: default; }
+    .feedback { min-height: 25px; margin: 10px 0 0; font: 11px/1.35 Arial, sans-serif; color: var(--muted); }
+    .foot { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 7px; flex-wrap: wrap; }
+    .hint { color: var(--muted); font: 10px/1.35 Arial, sans-serif; }
+    /* Sacudida intensa durante los últimos 3 segundos antes de revelar los autores. */
+    .quiz-shell.shaking .quiz-card { animation: strongShake 3s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes strongShake {
+      0%, 100% { transform: translate3d(0, 0, 0) rotate(0); }
+      5% { transform: translate3d(-7px, 2px, 0) rotate(-1deg); }
+      10% { transform: translate3d(8px, -3px, 0) rotate(1.2deg); }
+      15% { transform: translate3d(-10px, 3px, 0) rotate(-1.5deg); }
+      20% { transform: translate3d(10px, -2px, 0) rotate(1.5deg); }
+      25% { transform: translate3d(-12px, 2px, 0) rotate(-1.8deg); }
+      30% { transform: translate3d(12px, -3px, 0) rotate(1.8deg); }
+      35% { transform: translate3d(-13px, 3px, 0) rotate(-2deg); }
+      40% { transform: translate3d(13px, -3px, 0) rotate(2deg); }
+      45% { transform: translate3d(-12px, 2px, 0) rotate(-1.8deg); }
+      50% { transform: translate3d(12px, -2px, 0) rotate(1.8deg); }
+      55% { transform: translate3d(-10px, 3px, 0) rotate(-1.5deg); }
+      60% { transform: translate3d(10px, -3px, 0) rotate(1.5deg); }
+      65% { transform: translate3d(-8px, 2px, 0) rotate(-1.2deg); }
+      70% { transform: translate3d(8px, -2px, 0) rotate(1.2deg); }
+      75% { transform: translate3d(-6px, 2px, 0) rotate(-.8deg); }
+      80% { transform: translate3d(6px, -2px, 0) rotate(.8deg); }
+      85% { transform: translate3d(-4px, 1px, 0) rotate(-.5deg); }
+      90% { transform: translate3d(3px, -1px, 0) rotate(.3deg); }
+      95% { transform: translate3d(-1px, 0, 0) rotate(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="quiz-shell" id="quizShell">
+    <section class="quiz-card" id="quizCard" aria-live="polite">
+      <p class="eyebrow" id="eyebrow">Los Sonetozos · Pregunta 01</p>
+      <h1 id="question">¿Cuál de los tres sonetozos es el menos pecador?</h1>
+      <div class="options" id="options">
+        <button class="option" data-index="0">Sonetozo I</button>
+        <button class="option" data-index="1">Sonetozo II</button>
+        <button class="option" data-index="2">Sonetozo III</button>
+      </div>
+      <p class="feedback" id="feedback" role="status">Selecciona una opción para revelar el resultado.</p>
+      <div class="foot">
+        <span class="hint" id="hint">Una sola respuesta · Elige con cuidado</span>
+      </div>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const shell = document.getElementById('quizShell');
+      const eyebrow = document.getElementById('eyebrow');
+      const question = document.getElementById('question');
+      const options = document.getElementById('options');
+      const feedback = document.getElementById('feedback');
+      const hint = document.getElementById('hint');
+
+      const rounds = [
+        {
+          eyebrow: 'Los Sonetozos · Pregunta 01',
+          question: '¿Cuál de los tres sonetozos es el menos pecador?',
+          choices: ['Sonetozo I', 'Sonetozo II', 'Sonetozo III'],
+          correct: 0,
+          hint: 'Una sola respuesta · Elige con cuidado'
+        },
+        {
+          eyebrow: 'Los Sonetozos · Revelación',
+          question: 'Autores',
+          choices: ['Matheo Jiménez', 'Agente de IA: Chatgpt', 'Agente de IA: Gemini'],
+          correct: null,
+          hint: 'El espejo revela quién está detrás de cada soneto.'
+        }
+      ];
+
+      let roundIndex = 0;
+      let answered = false;
+      let transitionTimer = null;
+      let shakeTimer = null;
+
+      function renderRound() {
+        const round = rounds[roundIndex];
+        eyebrow.textContent = round.eyebrow;
+        question.textContent = round.question;
+        hint.textContent = round.hint;
+        feedback.textContent = roundIndex === 0
+          ? 'Selecciona una opción para revelar el resultado.'
+          : 'La pregunta ha cambiado: ahora se revelan los autores.';
+        options.replaceChildren();
+
+        round.choices.forEach((choice, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'option';
+          button.dataset.index = String(index);
+          button.textContent = choice;
+          if (roundIndex === 1) button.disabled = true;
+          options.appendChild(button);
+        });
+
+      }
+
+      function shakeAndRevealAuthors() {
+        shell.classList.remove('shaking');
+        // Fuerza el reinicio de la animación antes de iniciar la sacudida.
+        void shell.offsetWidth;
+        shell.classList.add('shaking');
+        shakeTimer = window.setTimeout(() => {
+          roundIndex = 1;
+          shell.classList.remove('shaking');
+          renderRound();
+        }, 3000);
+      }
+
+      options.addEventListener('click', (event) => {
+        const button = event.target.closest('.option');
+        if (!button || answered || roundIndex !== 0) return;
+        answered = true;
+        const selected = Number(button.dataset.index);
+        const all = [...options.querySelectorAll('.option')];
+        all.forEach((option, index) => {
+          option.disabled = true;
+          if (index === 0) option.classList.add('correct');
+          if (index === selected && selected !== 0) option.classList.add('incorrect');
+        });
+
+        feedback.textContent = selected === 0
+          ? '¡Correcto! Sonetozo I es el menos pecador.'
+          : 'No exactamente. La respuesta correcta es Sonetozo I.';
+        hint.textContent = 'La pantalla comenzará a sacudirse durante los últimos 3 segundos…';
+
+        // Espera 2 segundos y luego sacude durante 3 segundos: total de 5 segundos.
+        transitionTimer = window.setTimeout(shakeAndRevealAuthors, 2000);
+      });
+
+      renderRound();
+    })();
+  </script>
+</body>
+</html>
